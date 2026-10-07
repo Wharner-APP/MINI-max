@@ -1,0 +1,23 @@
+set(UPD_SOURCES src/main.cpp)
+if(WIN32)
+  set(MM_RC_ICON "")
+  if(EXISTS "${PROJECT_SOURCE_DIR}/logo.ico")
+    set(MM_RC_ICON "IDI_ICON1 ICON \"${PROJECT_SOURCE_DIR}/logo.ico\"")
+  endif()
+  set(MM_RC_DESC "${MM_APP_NAME} updater")
+  set(MM_RC_FILE "update.exe")
+  configure_file(${PROJECT_SOURCE_DIR}/client/win/app.rc.in ${CMAKE_BINARY_DIR}/generated/updater.rc @ONLY)
+  list(APPEND UPD_SOURCES ${CMAKE_BINARY_DIR}/generated/updater.rc)
+endif()
+add_executable(update ${UPD_SOURCES})
+target_link_libraries(update PRIVATE mmcommon)
+if(WIN32)
+  set_target_properties(update PROPERTIES WIN32_EXECUTABLE ON)
+  if(TARGET Qt5::WinMain)
+    target_link_libraries(update PRIVATE Qt5::WinMain)
+  endif()
+endif()
+add_custom_command(TARGET update POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:update>/configs
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/configs/update_public.key $<TARGET_FILE_DIR:update>/configs/update_public.key
+  VERBATIM)

@@ -1,0 +1,18 @@
+# MINI max client settings. The server address is NOT here - it lives in configs/connect.ip.
+
+[network]
+ping_interval_seconds = 5        # how often the app checks that the server is reachable
+connect_timeout_seconds = 90     # show the "cannot connect" window after this long without a server
+request_timeout_seconds = 15     # timeout of a single API request
+
+[support]
+instructions_url = "https://wharner-official-app.tilda.ws/"   # shown in the "cannot connect" window
+
+[ui]
+theme = "dark"                   # dark | light | system
+
+[storage]
+data_dir = ""                    # empty = default per-user folder (messages, session, preferences)
+
+[payments]
+provider = "none"                # none = payments disabled (shows an error); server = POST /api/payments/create

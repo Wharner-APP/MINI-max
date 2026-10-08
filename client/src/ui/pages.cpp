@@ -839,19 +839,80 @@ void settings(PopupHost *h) {
 
 void contacts(PopupHost *h) {
     auto *pg = new Page(h);
-    pg->note("Введите логин в поле ниже или используйте поиск (Enter) на главном экране.");
+    pg->note("Ваш список контактов синхронизируется с сервером и сохраняется между перезапусками.");
+
     auto *add = new QLineEdit;
     add->setPlaceholderText("логин пользователя");
     pg->widget(add);
-    pg->footerButton("Добавить контакт", [h, add] {
+
+    auto *listHost = new QWidget;
+    auto *list = new QVBoxLayout(listHost);
+    list->setContentsMargins(12, 4, 12, 12);
+    list->setSpacing(4);
+    pg->widget(listHost);
+
+    auto clearList = [list] {
+        while (QLayoutItem *it = list->takeAt(0)) {
+            if (it->widget()) it->widget()->deleteLater();
+            delete it;
+        }
+    };
+
+    auto loadList = [h, list, clearList] {
+        clearList();
+        if (!AppContext::i().api) {
+            auto *l = new QLabel("Сервер недоступен.");
+            l->setStyleSheet(QString("color:%1;").arg(pal().textSecondary.name()));
+            list->addWidget(l);
+            return;
+        }
+        AppContext::i().api->get("/api/contacts", h, [list](const ApiResult &r) {
+            if (!r.ok) {
+                auto *l = new QLabel("Не удалось загрузить контакты: " + r.error);
+                l->setWordWrap(true);
+                l->setStyleSheet(QString("color:%1;").arg(pal().danger.name()));
+                list->addWidget(l);
+                return;
+            }
+            const QJsonArray arr = r.json["contacts"].toArray();
+            if (arr.isEmpty()) {
+                auto *l = new QLabel("Контактов пока нет.");
+                l->setAlignment(Qt::AlignCenter);
+                l->setStyleSheet(QString("color:%1; padding:16px;").arg(pal().textSecondary.name()));
+                list->addWidget(l);
+                return;
+            }
+            for (const QJsonValue &v : arr) {
+                const QJsonObject o = v.toObject();
+                const QString login = o["username"].toString();
+                const QString name = o["name"].toString(login);
+                auto *row = new ClickRow("person", name, "@" + login);
+                QObject::connect(row, &ClickRow::clicked, row, [login] {
+                    if (Engine *eng = AppContext::i().engine) eng->openDm(login);
+                });
+                list->addWidget(row);
+            }
+        });
+    };
+
+    pg->footerButton("Добавить контакт", [h, add, loadList] {
         QString login = add->text().trimmed();
         if (login.startsWith('@')) login = login.mid(1);
         if (login.isEmpty()) return;
-        if (Engine *eng = AppContext::i().engine) eng->addContact(login);
-        else AppContext::i().api->post("/api/contacts/add", {{"login", login}}, h, [h](const ApiResult &r) {
-            infoDialog(h, "Контакты", r.ok ? "Добавлен" : r.error);
-        });
+        if (Engine *eng = AppContext::i().engine) {
+            eng->addContact(login);
+            add->clear();
+            QTimer::singleShot(500, h, loadList);
+        } else {
+            AppContext::i().api->post("/api/contacts/add", {{"login", login}}, h, [h, add, loadList](const ApiResult &r) {
+                if (!r.ok) { infoDialog(h, "Контакты", r.error); return; }
+                add->clear();
+                loadList();
+            });
+        }
     });
+    pg->footerButton("Обновить", loadList);
+    loadList();
     h->open(pg, "Контакты");
 }
 void calls(PopupHost *h) {

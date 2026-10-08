@@ -1,0 +1,26 @@
+{
+  "currency": "RUB",
+  "business_monthly_minor": 29900,
+  "plans": [
+    {"id": "premium_24m", "title": "На 2 года",  "months": 24, "price_minor": 149500, "old_price_minor": 717600, "discount": 58},
+    {"id": "premium_12m", "title": "Ежегодно",   "months": 12, "price_minor": 199000, "old_price_minor": 358800, "discount": 45},
+    {"id": "premium_1m",  "title": "Ежемесячно", "months": 1,  "price_minor": 29900,  "old_price_minor": 0,      "discount": 0}
+  ],
+  "star_packs": [
+    {"stars": 50, "price_minor": 9900}, {"stars": 100, "price_minor": 19900}, {"stars": 500, "price_minor": 94900}, {"stars": 1000, "price_minor": 189900}
+  ],
+  "gifts": [
+    {"id": "heart",   "emoji": "💝", "name": "Сердце",     "stars": 15},
+    {"id": "bear",    "emoji": "🧸", "name": "Мишка",      "stars": 15},
+    {"id": "box",     "emoji": "🎁", "name": "Подарок",    "stars": 25},
+    {"id": "rose",    "emoji": "🌹", "name": "Роза",       "stars": 25},
+    {"id": "cake",    "emoji": "🎂", "name": "Торт",       "stars": 50},
+    {"id": "bouquet", "emoji": "💐", "name": "Букет",      "stars": 50},
+    {"id": "rocket",  "emoji": "🚀", "name": "Ракета",     "stars": 50},
+    {"id": "cup",     "emoji": "🏆", "name": "Кубок",      "stars": 100},
+    {"id": "ring",    "emoji": "💍", "name": "Кольцо",     "stars": 100},
+    {"id": "diamond", "emoji": "💎", "name": "Бриллиант",  "stars": 100},
+    {"id": "wine",    "emoji": "🍾", "name": "Шампанское", "stars": 50},
+    {"id": "torch",   "emoji": "🔥", "name": "Факел",      "stars": 500, "collectible": true}
+  ]
+}

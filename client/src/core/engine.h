@@ -93,7 +93,7 @@ private:
     void handleEvent(const QJsonObject &e);
     void handleEphemeral(const QJsonObject &e);
     void publishKeys();
-    void ensurePeerKey(const QString &login, std::function<void(const QByteArray &pub)> cb);
+    void ensurePeerKey(const QString &login, std::function<void(const QByteArray &pub)> cb, int attempt = 0);
     QString encryptBody(qint64 chatId, const QString &plain);
     QString decryptBody(qint64 chatId, const QString &encBody, bool enc);
     ChatKind kindFrom(const QString &k) const;

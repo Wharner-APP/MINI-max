@@ -139,19 +139,20 @@ MessageDelegate::Layout MessageDelegate::layout(const QFont &font, const QModelI
     L.replyAuthor = idx.data(MessagesModel::ReplyAuthorRole).toString();
     if (idx.data(MessagesModel::ShowSenderRole).toBool()) L.senderName = idx.data(MessagesModel::SenderRole).toString();
     QFont tf = font;
-    if (mediaKind == "sticker") font.setPointSizeF(font.pointSizeF() + 20);
-    tf.setPointSizeF(font.pointSizeF() - 2);
-    const QFontMetrics fm(font), tfm(tf);
+    QFont contentFont = font;
+    if (mediaKind == "sticker") contentFont.setPointSizeF(contentFont.pointSizeF() + 20);
+    tf.setPointSizeF(contentFont.pointSizeF() - 2;
+    const QFontMetrics fm(contentFont), tfm(tf);
     const int maxBubble = qMax(160, qMin(480, m_width - 2 * kSide - 40));
     const int inner = maxBubble - 2 * kPad;
-    QTextLayout tl(text, font);
+    QTextLayout tl(text, contentFont);
     int th, widest, lastW;
     wrap(tl, inner, &th, &widest, &lastW);
     const int timeW = tfm.horizontalAdvance(L.timeText) + (out ? 22 : 0);
     L.timeInline = lastW + 10 + timeW <= inner;
     int contentW = qMax(widest, L.timeInline ? lastW + 10 + timeW : timeW);
     int y = kPad;
-    if (!L.senderName.isEmpty()) { contentW = qMax(contentW, QFontMetrics(font).horizontalAdvance(L.senderName)); y += fm.height() + 2; }
+    if (!L.senderName.isEmpty()) { contentW = qMax(contentW, QFontMetrics(contentFont).horizontalAdvance(L.senderName)); y += fm.height() + 2; }
     const int replyTop = y;
     if (!L.replyText.isEmpty()) { contentW = qMax(contentW, qMin(inner, 150)); y += 40; }
     const int textTop = y;
@@ -181,6 +182,7 @@ void MessageDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt, const 
     const Palette &c = pal();
     const bool out = idx.data(MessagesModel::OutgoingRole).toBool();
     const QString mediaKind = idx.data(MessagesModel::MediaKindRole).toString();
+    const QString text = idx.data(MessagesModel::TextRole).toString();
     const Layout L = layout(opt.font, idx);
     p->save();
     p->setRenderHint(QPainter::Antialiasing);

@@ -1,5 +1,6 @@
 #pragma once
 #include <QMainWindow>
+#include <QSystemTrayIcon>
 
 #include "core/config.h"
 #include "core/context.h"
@@ -14,6 +15,7 @@ class MainView;
 class PopupHost;
 class QStackedWidget;
 class QTimer;
+class QMenu;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -45,4 +47,6 @@ private:
     QByteArray m_localKey;
     bool m_demo;
     bool m_timeoutShown = false;
+    bool m_allowClose = false;
+    QSystemTrayIcon *m_tray = nullptr;
 };

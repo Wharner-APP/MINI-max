@@ -2,6 +2,10 @@
 
 #include <QAbstractTextDocumentLayout>
 #include <QFileDialog>
+#include <QNetworkAccessManager>
+#include <QDir>
+#include <QFile>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QJsonArray>
@@ -617,8 +621,10 @@ void ChatView::finishRecording() {
         QFile::remove(path);
         return;
     }
-    AppContext::i().engine->sendMediaFile(c->id, path, kind, kind == "round" ? "Кружок" : "Голосовое сообщение");
-    QTimer::singleShot(1000, this, [path] { QFile::remove(path); });
+    AppContext::i().engine->sendMediaFile(c->id, path, kind, kind == "round" ? "Кружок" : "Голосовое сообщение", [this, path, kind](bool ok, const QString &err) {
+        QFile::remove(path);
+        if (!ok) emit notice(kind == "round" ? "Кружок" : "Голосовое", err.isEmpty() ? "Не удалось отправить запись" : err);
+    });
 }
 
 bool ChatView::eventFilter(QObject *o, QEvent *e) {

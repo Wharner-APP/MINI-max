@@ -18,6 +18,7 @@
 #include "core/api.h"
 #include "core/chats_model.h"
 #include "core/device_info.h"
+#include "core/prefs.h"
 
 static QByteArray b64dec(const QString &s) { return QByteArray::fromBase64(s.toLatin1()); }
 static QString b64enc(const QByteArray &b) { return QString::fromLatin1(b.toBase64()); }
@@ -468,7 +469,9 @@ void Engine::updateProfile(const QJsonObject &fields) {
             const QJsonObject u = r.json["user"].toObject();
             if (u.contains("display_name")) AppContext::i().session.displayName = u["display_name"].toString();
             if (u.contains("bio")) AppContext::i().session.bio = u["bio"].toString();
-            if (u.contains("username")) AppContext::i().session.login = u["username"].toString();  // public name
+            if (u.contains("username")) AppContext::i().session.login = u["username"].toString();
+            if (u.contains("avatar_id")) AppContext::i().session.avatarId = qint64(u["avatar_id"].toDouble());
+            if (fields.contains("name_color")) Prefs::instance().set("profile/name_color_index", fields["name_color"].toInt());
         }
         emit notice("Профиль", "Сохранено");
     });

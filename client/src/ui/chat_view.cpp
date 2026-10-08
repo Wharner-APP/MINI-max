@@ -588,7 +588,7 @@ void ChatView::startRecording(bool video) {
         m_camera->start();
     } else {
         m_captureSession.setCamera(nullptr);
-        fmt.setFileFormat(QMediaFormat::MPEG4Audio);
+        fmt.setFileFormat(QMediaFormat::MPEG4);
         m_recorder->setMediaFormat(fmt);
         m_recorder->setOutputLocation(QUrl::fromLocalFile(m_recordPath));
     }

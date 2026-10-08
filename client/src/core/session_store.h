@@ -3,6 +3,7 @@
 #include <QString>
 
 #include "core/context.h"
+#include "core/crypto.h"
 
 class ChatsModel;
 
@@ -14,5 +15,7 @@ bool load(const QString &dir, Session *s, QByteArray *localKey);
 void clear(const QString &dir);
 // Chats file = JSON sealed with the password-derived local key.
 bool saveChats(const QString &dir, const ChatsModel &m, const QByteArray &localKey);
+bool loadIdentity(const QString &dir, const QString &login, const QByteArray &localKey, mmcrypto::KeyPair *identity);
+bool saveIdentity(const QString &dir, const QString &login, const QByteArray &localKey, const mmcrypto::KeyPair &identity);
 bool loadChats(const QString &dir, ChatsModel *m, const QByteArray &localKey);
 }

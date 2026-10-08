@@ -4,6 +4,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QCryptographicHash>
+#include <QDir>
 #include <QSysInfo>
 
 #include "core/chats_model.h"
@@ -24,7 +26,7 @@ QByteArray readFile(const QString &path) { QFile f(path); return f.open(QIODevic
 
 bool save(const QString &dir, const Session &s, const QByteArray &localKey) {
     QJsonObject o{{"id", double(s.userId)}, {"login", s.login}, {"name", s.displayName}, {"bio", s.bio}, {"token", s.token},
-                  {"local_key", QString::fromLatin1(localKey.toBase64())}};
+                  {"local_key", QString::fromLatin1(localKey.toBase64())}, {"avatar_id", double(s.avatarId)}};
     return writeFile(dir + "/session.mm", mmcrypto::seal(devKey(), QJsonDocument(o).toJson(QJsonDocument::Compact)));
 }
 
@@ -37,6 +39,7 @@ bool load(const QString &dir, Session *s, QByteArray *localKey) {
     s->login = o["login"].toString();
     s->displayName = o["name"].toString();
     s->bio = o["bio"].toString();
+    s->avatarId = qint64(o["avatar_id"].toDouble());
     s->token = o["token"].toString();
     *localKey = QByteArray::fromBase64(o["local_key"].toString().toLatin1());
     return s->valid() && localKey->size() == 32;
@@ -56,3 +59,36 @@ bool loadChats(const QString &dir, ChatsModel *m, const QByteArray &localKey) {
     return true;
 }
 }  // namespace SessionStore
+
+namespace SessionStore {
+namespace {
+QString identityPath(const QString &dir, const QString &login) {
+    const QByteArray h = QCryptographicHash::hash(login.trimmed().toLower().toUtf8(), QCryptographicHash::Sha256).toHex();
+    const QString sub = dir + "/identities";
+    QDir().mkpath(sub);
+    return sub + "/" + QString::fromLatin1(h) + ".mm";
+}
+}
+
+bool saveIdentity(const QString &dir, const QString &login, const QByteArray &localKey, const mmcrypto::KeyPair &identity) {
+    if (localKey.size() != 32 || identity.pub.size() != 32 || identity.priv.size() != 32) return false;
+    const QJsonObject o{
+        {"login", login.trimmed().toLower()},
+        {"pub", QString::fromLatin1(identity.pub.toBase64())},
+        {"priv", QString::fromLatin1(identity.priv.toBase64())}
+    };
+    return writeFile(identityPath(dir, login), mmcrypto::seal(localKey, QJsonDocument(o).toJson(QJsonDocument::Compact)));
+}
+
+bool loadIdentity(const QString &dir, const QString &login, const QByteArray &localKey, mmcrypto::KeyPair *identity) {
+    if (!identity || localKey.size() != 32) return false;
+    bool ok = false;
+    const QByteArray plain = mmcrypto::open(localKey, readFile(identityPath(dir, login)), &ok);
+    if (!ok) return false;
+    const QJsonObject o = QJsonDocument::fromJson(plain).object();
+    if (o["login"].toString().trimmed().toLower() != login.trimmed().toLower()) return false;
+    identity->pub = QByteArray::fromBase64(o["pub"].toString().toLatin1());
+    identity->priv = QByteArray::fromBase64(o["priv"].toString().toLatin1());
+    return identity->pub.size() == 32 && identity->priv.size() == 32;
+}
+} // namespace SessionStore

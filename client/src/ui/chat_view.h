@@ -4,12 +4,16 @@
 #include <QPlainTextEdit>
 #include <QToolButton>
 #include <QWidget>
+#include <QMediaCaptureSession>
+#include <QMediaRecorder>
 
 class ChatsModel;
 class MessagesModel;
 class MessageDelegate;
 class EmojiPanel;
 class QStackedWidget;
+class QAudioInput;
+class QCamera;
 
 // Multi-line input: Enter sends (or Ctrl+Enter, see settings), Shift+Enter inserts a new line.
 class InputEdit : public QPlainTextEdit {
@@ -45,6 +49,10 @@ private:
     void submit();
     void attach();
     void updateBars();
+    void startRecording(bool video);
+    void stopRecording();
+    void finishRecording();
+
     ChatsModel *m_chats;
     MessagesModel *m_messages;
     MessageDelegate *m_delegate;
@@ -56,4 +64,11 @@ private:
     QToolButton *m_searchBtn, *m_callBtn, *m_infoBtn, *m_moreBtn, *m_attachBtn, *m_emojiBtn, *m_sendBtn, *m_timerBtn, *m_muteBtn;
     EmojiPanel *m_emoji;
     QPixmap m_wallpaper;
+    QMediaCaptureSession m_captureSession;
+    QMediaRecorder *m_recorder = nullptr;
+    QAudioInput *m_audioInput = nullptr;
+    QCamera *m_camera = nullptr;
+    QString m_recordPath;
+    QString m_recordKind;
+    bool m_recording = false;
 };

@@ -400,7 +400,7 @@ void MainView::openDrawer() {
         auto *hl = new QVBoxLayout(head);
         hl->setContentsMargins(20, 24, 16, 12);
         auto *av = new QLabel;
-        av->setPixmap(avatarPixmap(60, s.displayName, qHash(s.login)));
+        av->setPixmap(profileAvatarPixmap(60, s.displayName, qHash(s.login)));
         hl->addWidget(av);
         hl->addSpacing(8);
         auto *nm = new QLabel(QString("<b>%1</b><br><a href='#' style='color:%2;text-decoration:none'>Установить эмодзи-статус</a>").arg(s.displayName.toHtmlEscaped(), c.link.name()));

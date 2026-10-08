@@ -369,7 +369,7 @@ void myProfile(PopupHost *h) {
     auto *pg = new Page(h);
     const Session &s = AppContext::i().session;
     auto *av = new QLabel;
-    av->setPixmap(avatarPixmap(96, s.displayName, qHash(s.login)));
+    av->setPixmap(profileAvatarPixmap(96, s.displayName, qHash(s.login)));
     pg->footerButton("Сменить фото профиля", [h] {
         const QString path = QFileDialog::getOpenFileName(nullptr, "Фото профиля", {}, "Images (*.png *.jpg *.jpeg *.webp *.bmp)");
         if (path.isEmpty()) return;
@@ -527,7 +527,7 @@ void accountPage(PopupHost *h) {
     auto *pg = new Page(h);
     Session &s = AppContext::i().session;
     auto *av = new QLabel;
-    av->setPixmap(avatarPixmap(100, s.displayName, qHash(s.login)));
+    av->setPixmap(profileAvatarPixmap(100, s.displayName, qHash(s.login)));
     av->setAlignment(Qt::AlignCenter);
     av->setContentsMargins(0, 8, 0, 8);
     pg->widget(av);

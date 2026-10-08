@@ -98,7 +98,11 @@ void ApiClient::download(const QString &urlOrPath, QObject *ctx, std::function<v
     QUrl u(urlOrPath);
     if (u.scheme().isEmpty())
         u = makeUrl(urlOrPath.startsWith('/') ? urlOrPath : ("/" + urlOrPath));
-    QNetworkReply *r = m_nam.get(request(u, false));
+    QNetworkRequest rq = (u.host().isEmpty() || u.host() == m_base.host()) ? request(u, false) : QNetworkRequest(u);
+    rq.setRawHeader("Accept", "*/*");
+    rq.setRawHeader("User-Agent", QByteArray("MINImax/") + MM_VERSION_STR + " (" + MM_PLATFORM_ID + ")");
+    rq.setTransferTimeout(qMax(m_timeout, 30000));
+    QNetworkReply *r = m_nam.get(rq);
     connect(r, &QNetworkReply::finished, ctx ? ctx : this, [r, cb] {
         const bool ok = r->error() == QNetworkReply::NoError;
         cb(ok ? r->readAll() : QByteArray(), ok ? QString() : r->errorString());

@@ -62,7 +62,7 @@ public:
     void uploadFile(const QString &path, const QString &kind, bool enc,
                     std::function<void(qint64 mediaId, const QString &err)> cb);
     void downloadMedia(qint64 mediaId, std::function<void(const QByteArray &, const QString &)> cb);
-    void sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption = {});
+    void sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption = {}, std::function<void(bool, const QString &)> done = {});
     void sendRemoteGif(qint64 chatId, const QUrl &url, const QString &title = {});
     void sendSticker(qint64 chatId, const QString &emoji);
 

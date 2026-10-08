@@ -863,7 +863,7 @@ void createGroup(PopupHost *h, bool channel) {
     h->input(channel ? "Создать канал" : "Создать группу", "Название", {}, "Создать", [h, channel](const QString &name) {
         if (name.trimmed().isEmpty()) return;
         if (Engine *eng = AppContext::i().engine) {
-            eng->createChat(channel ? "channel" : "group", name.trimmed(), false);
+            eng->createChat(channel ? "channel" : "group", name.trimmed(), channel);
         } else {
             AppContext::i().api->post("/api/chats/create", {{"kind", channel ? "channel" : "group"}, {"title", name}}, h, [h](const ApiResult &r) {
                 infoDialog(h, r.ok ? "Готово" : "Не удалось создать", r.ok ? "Создано." : r.error);

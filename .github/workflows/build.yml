@@ -232,12 +232,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          rm -rf source-archive
-          mkdir -p source-archive
-          cp -a . source-archive/MINI-max
-          rm -rf source-archive/MINI-max/.git
-          rm -rf source-archive/MINI-max/.github/workflows
-          zip -qr MINI-max-client-source.zip source-archive/MINI-max
+          git archive --format=zip --output=MINI-max-client-source.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
           name: MINI-max-client-source

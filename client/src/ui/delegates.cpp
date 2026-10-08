@@ -141,7 +141,7 @@ MessageDelegate::Layout MessageDelegate::layout(const QFont &font, const QModelI
     QFont tf = font;
     QFont contentFont = font;
     if (mediaKind == "sticker") contentFont.setPointSizeF(contentFont.pointSizeF() + 20);
-    tf.setPointSizeF(contentFont.pointSizeF() - 2;
+    tf.setPointSizeF(contentFont.pointSizeF() - 2);
     const QFontMetrics fm(contentFont), tfm(tf);
     const int maxBubble = qMax(160, qMin(480, m_width - 2 * kSide - 40));
     const int inner = maxBubble - 2 * kPad;

@@ -11,6 +11,7 @@
 #include <QUrlQuery>
 #include <QUuid>
 #include <QRandomGenerator>
+#include <QTemporaryFile>
 #include <QRegularExpression>
 
 #include "core/api.h"
@@ -520,6 +521,58 @@ void Engine::setChatAvatar(qint64 chatId, const QString &localImagePath) {
 void Engine::downloadMedia(qint64 mediaId, std::function<void(const QByteArray &, const QString &)> cb) {
     if (mediaId <= 0) { cb({}, "bad id"); return; }
     m_api->download(QString("/media/%1").arg(mediaId), this, cb);
+}
+
+
+void Engine::sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption) {
+    const int row = m_chats->rowOfId(chatId);
+    if (row < 0) return;
+    uploadFile(path, kind, false, [this, chatId, kind, caption](qint64 mid, const QString &err) {
+        if (mid <= 0) {
+            emit notice("Медиа", err.isEmpty() ? "Не удалось загрузить файл" : err);
+            return;
+        }
+        QJsonObject body{{"chat_id", double(chatId)}, {"kind", kind}, {"media_id", double(mid)}, {"body", caption}, {"enc", 0}};
+        m_api->post("/api/messages/send", body, this, [this](const ApiResult &r) {
+            if (!r.ok) emit notice("Медиа", r.error);
+        });
+    });
+}
+
+void Engine::sendRemoteGif(qint64 chatId, const QUrl &url, const QString &title) {
+    if (!url.isValid() || url.scheme().isEmpty()) {
+        emit notice("GIF", "Некорректный адрес GIF");
+        return;
+    }
+    m_api->download(url.toString(), this, [this, chatId, title](const QByteArray &data, const QString &err) {
+        if (data.isEmpty()) {
+            emit notice("GIF", err.isEmpty() ? "Не удалось загрузить GIF" : err);
+            return;
+        }
+        auto *tmp = new QTemporaryFile(QDir::tempPath() + "/minimax-gif-XXXXXX.gif");
+        tmp->setAutoRemove(false);
+        if (!tmp->open()) {
+            delete tmp;
+            emit notice("GIF", "Не удалось создать временный файл");
+            return;
+        }
+        const QString path = tmp->fileName();
+        tmp->write(data);
+        tmp->close();
+        delete tmp;
+        uploadFile(path, "gif", false, [this, chatId, path, title](qint64 mid, const QString &uerr) {
+            QFile::remove(path);
+            if (mid <= 0) {
+                emit notice("GIF", uerr.isEmpty() ? "Не удалось загрузить GIF на сервер" : uerr);
+                return;
+            }
+            m_api->post("/api/messages/send",
+                        {{"chat_id", double(chatId)}, {"kind", "gif"}, {"media_id", double(mid)}, {"body", title}, {"enc", 0}},
+                        this, [this](const ApiResult &r) {
+                            if (!r.ok) emit notice("GIF", r.error);
+                        });
+        });
+    });
 }
 
 void Engine::search(const QString &query, std::function<void(const QVector<SearchHit> &)> cb) {

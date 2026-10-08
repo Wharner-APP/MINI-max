@@ -4,6 +4,11 @@
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QIcon>
+#include <QMenu>
+#include <QAction>
+#include <QFile>
+#include <QDir>
+#include <QStandardPaths>
 #include <QStackedWidget>
 #include <QTimer>
 #include <mm/build_info.h>
@@ -16,6 +21,7 @@
 #include "core/payments.h"
 #include "core/prefs.h"
 #include "core/session_store.h"
+#include "core/prefs.h"
 #include "core/engine.h"
 #include "core/crypto.h"
 #include "ui/auth_view.h"
@@ -69,6 +75,25 @@ MainWindow::MainWindow(const ClientConfig &cfg, const ServerEndpoint &ep, bool d
         showAuth();
     };
 
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        m_tray = new QSystemTrayIcon(QIcon(":/logo.ico"), this);
+        auto *menu = new QMenu(this);
+        QAction *openAction = menu->addAction("Открыть MINI max");
+        menu->addSeparator();
+        QAction *quitAction = menu->addAction("Выйти");
+        connect(openAction, &QAction::triggered, this, [this] { showNormal(); raise(); activateWindow(); });
+        connect(quitAction, &QAction::triggered, this, [this] {
+            m_allowClose = true;
+            qApp->quit();
+        });
+        m_tray->setContextMenu(menu);
+        connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+            if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick) {
+                showNormal(); raise(); activateWindow();
+            }
+        });
+        m_tray->show();
+    }
     if (!demo) m_monitor->start();
     applyTheme();
 
@@ -132,13 +157,46 @@ void MainWindow::showMain(const Session &s, const QByteArray &localKey, bool dem
         // Live engine: sync + messaging + search + avatars
         if (!m_engine) m_engine = new Engine(m_api, m_chats, this);
         AppContext::i().engine = m_engine;
-        mmcrypto::KeyPair kp = mmcrypto::generateKeyPair();
-        // Prefer a stable identity key sealed in local store later; for now generate per session.
+        mmcrypto::KeyPair kp;
+        if (!SessionStore::loadIdentity(ctx.dataDir, s.login, localKey, &kp)) {
+            kp = mmcrypto::generateKeyPair();
+            SessionStore::saveIdentity(ctx.dataDir, s.login, localKey, kp);
+        }
         m_engine->start(s, localKey, kp);
         connect(m_engine, &Engine::notice, this, [this](const QString &title, const QString &text) {
             if (m_main && m_main->popup()) Pages::infoDialog(m_main->popup(), title, text);
             else m_alerts->dialog(title, text, {{"OK", []{}, false}});
-        });
+        }, Qt::UniqueConnection);
+        connect(m_engine, &Engine::avatarReady, this, [this](qint64 mediaId, const QByteArray &data) {
+            if (mediaId <= 0 || data.isEmpty()) return;
+            const QString path = AppContext::i().dataDir + "/profile_avatar.bin";
+            QSaveFile f(path);
+            if (f.open(QIODevice::WriteOnly)) {
+                f.write(data);
+                if (f.commit()) Prefs::instance().set("profile/avatar_path", path);
+            }
+            AppContext::i().session.avatarId = mediaId;
+            SessionStore::save(AppContext::i().dataDir, AppContext::i().session, m_localKey);
+            if (m_main) m_main->refreshTheme();
+        }, Qt::UniqueConnection);
+        connect(m_engine, &Engine::meUpdated, this, [this](const QJsonObject &me) {
+            const qint64 avatarId = qint64(me.value("avatar_id").toDouble());
+            AppContext::i().session.avatarId = avatarId;
+            if (avatarId > 0) {
+                m_engine->downloadMedia(avatarId, [this](const QByteArray &data, const QString &) {
+                    if (data.isEmpty()) return;
+                    const QString path = AppContext::i().dataDir + "/profile_avatar.bin";
+                    QSaveFile f(path);
+                    if (f.open(QIODevice::WriteOnly)) { f.write(data); if (f.commit()) Prefs::instance().set("profile/avatar_path", path); }
+                    if (m_main) m_main->refreshTheme();
+                });
+            } else {
+                const QString old = Prefs::instance().get("profile/avatar_path").toString();
+                if (!old.isEmpty()) QFile::remove(old);
+                Prefs::instance().set("profile/avatar_path", QString());
+            }
+            SessionStore::save(AppContext::i().dataDir, AppContext::i().session, m_localKey);
+        }, Qt::UniqueConnection);
         AppContext::i().openChatRow = [this](int row) { if (m_main) m_main->openChat(row); };
     }
     applyTheme();
@@ -153,6 +211,14 @@ void MainWindow::saveNow() {
 
 void MainWindow::closeEvent(QCloseEvent *e) {
     saveNow();
+    if (m_tray && m_tray->isVisible() && !m_allowClose) {
+        hide();
+        e->ignore();
+        if (!m_timeoutShown)
+            m_tray->showMessage(MM_APP_NAME, "MINI max продолжает работать в системном трее.",
+                                QSystemTrayIcon::Information, 2500);
+        return;
+    }
     QMainWindow::closeEvent(e);
 }
 

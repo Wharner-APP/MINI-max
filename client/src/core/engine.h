@@ -64,6 +64,7 @@ public:
     void downloadMedia(qint64 mediaId, std::function<void(const QByteArray &, const QString &)> cb);
     void sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption = {});
     void sendRemoteGif(qint64 chatId, const QUrl &url, const QString &title = {});
+    void sendSticker(qint64 chatId, const QString &emoji);
 
     // Contacts / blocks
     void addContact(const QString &login);

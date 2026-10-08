@@ -30,18 +30,19 @@
 #include "ui/icons.h"
 #include "ui/theme.h"
 
-// ---------------------------------------------------------------- emoji panel
+// ---------------------------------------------------------------- emoji / sticker / GIF panel
 class EmojiPanel : public QWidget {
     Q_OBJECT
 public:
     explicit EmojiPanel(QWidget *parent = nullptr) : QWidget(parent) {
-        setFixedWidth(300);
+        setFixedWidth(320);
         auto *l = new QVBoxLayout(this);
         l->setContentsMargins(0, 0, 0, 0);
         l->setSpacing(0);
+
         auto *tabs = new QHBoxLayout;
         const QStringList names = {"Эмодзи", "Стикеры", "GIF"};
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < names.size(); ++i) {
             auto *b = new QToolButton;
             b->setText(names[i]);
             b->setMinimumHeight(40);
@@ -52,6 +53,7 @@ public:
             connect(b, &QToolButton::clicked, this, [this, i] { select(i); });
         }
         l->addLayout(tabs);
+
         m_search = new QLineEdit;
         m_search->setPlaceholderText("Поиск");
         m_search->setMaximumHeight(36);
@@ -60,59 +62,78 @@ public:
         sl->setContentsMargins(10, 6, 10, 6);
         sl->addWidget(m_search);
         l->addWidget(sw);
+
         m_stack = new QStackedWidget;
-        auto *scroll = new QScrollArea;
-        scroll->setWidgetResizable(true);
-        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        auto *host = new QWidget;
-        auto *g = new QGridLayout(host);
-        g->setContentsMargins(8, 4, 8, 8);
-        g->setSpacing(0);
-        // Broad Unicode emoji ranges (no external API)
-        QVector<uint> codes;
-        auto addRange = [&](uint a, uint b) { for (uint c = a; c <= b; ++c) codes << c; };
-        addRange(0x1F600, 0x1F64F); // emoticons
-        addRange(0x1F300, 0x1F5FF); // misc symbols & pictographs
-        addRange(0x1F680, 0x1F6FF); // transport
-        addRange(0x1F900, 0x1F9FF); // supplemental
-        addRange(0x1FA70, 0x1FAFF); // extended-A
-        addRange(0x2600, 0x26FF);   // misc symbols
-        addRange(0x2700, 0x27BF);   // dingbats
-        for (uint c : {0x2764u, 0x2B50u, 0x2665u, 0x2660u, 0x2663u, 0x2666u, 0x2728u, 0x2744u, 0x203Cu, 0x2049u}) codes << c;
-        int i = 0;
-        for (uint c : codes) {
-            const QString e = QString::fromUcs4(reinterpret_cast<const char32_t *>(&c), 1);
+        l->addWidget(m_stack, 1);
+
+        // Local emoji — no network and no API key required.
+        auto *emojiScroll = new QScrollArea;
+        emojiScroll->setWidgetResizable(true);
+        emojiScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        auto *emojiHost = new QWidget;
+        auto *emojiGrid = new QGridLayout(emojiHost);
+        emojiGrid->setContentsMargins(8, 4, 8, 8);
+        emojiGrid->setSpacing(2);
+        const QStringList emoji = {
+            "💔","😊","😂","🤣","❤️","😁","💕","😘","👌","😒","😍","👍","🙌","🤦‍♀️","🤦‍♂️","🤷‍♀️","🤷‍♂️","😢","🎶","😎","😉","🤞","✌️",
+            "😀","😃","😄","😅","😆","😋","😇","🥰","😙","😗","🥲","🤔","🤩","🤗","🙂","☺️","😚","🫡","🤨","😐","😑","😶","🫥",
+            "😮","😥","😣","😏","🙄","😶‍🌫️","🤐","😯","😪","😫","🥱","😴","🤤","😝","😜","😛","😌","🫩","😓","😔","😕","🫤",
+            "🙃","😖","🙁","☹️","😲","🫠","🤑","😞","😟","😤","😭","😦","🤯","😬","😱","🥵","🥶","😳","😡","🤬","😷","🤒","🤕",
+            "🤢","🤮","🥴","🥳","🥺","🤠","🤡","🤥","🤫","🤭","🧐","🤓","😈","👿","💀","☠️","👻","👽","🤖","💩",
+            "👍🏻","👍🏼","👍🏽","👍🏾","👍🏿","👏","🙏","💪","👋","❤️‍🔥","💯","🔥","✨","⭐","🌟","🎉","🎊","🎁","🏆","🚀",
+            "🐶","🐱","🦊","🐻","🐼","🐸","🐵","🦄","🐝","🦋","🐢","🐙","🐬","🐳","🍎","🍕","🍔","🍟","🍩","🍪",
+            "⚽","🏀","🎮","🎯","🎵","🎸","🎹","🎬","🎤","🎧","📱","💻","📷","💡","📚","✏️","📌","🔗","💰","💎","🔔","🔒","🔑",
+            "✈️","🚀","🏠","🌈","☀️","🌙","⛅","❄️","🍀","🌸","🌺","🌻","🌷"
+        };
+        int ei = 0;
+        for (const QString &e : emoji) {
             auto *b = new QToolButton;
             b->setText(e);
-            b->setFixedSize(38, 38);
-            b->setStyleSheet("QToolButton { font-size: 20px; border-radius: 8px; }");
+            b->setFixedSize(42, 42);
+            b->setStyleSheet("QToolButton { font-size: 21px; border-radius: 8px; } QToolButton:hover { background: rgba(120,160,220,60); }");
             connect(b, &QToolButton::clicked, this, [this, e] { emit picked(e); });
-            g->addWidget(b, i / 7, i % 7);
+            emojiGrid->addWidget(b, ei / 7, ei % 7);
             m_all << b;
-            ++i;
+            ++ei;
         }
-        scroll->setWidget(host);
-        m_stack->addWidget(scroll);
-        // Stickers panel (from /api/stickers)
+        emojiScroll->setWidget(emojiHost);
+        m_stack->addWidget(emojiScroll);
+
+        // Built-in stickers. They are local, so they continue to work without any external API.
         auto *stScroll = new QScrollArea;
         stScroll->setWidgetResizable(true);
         stScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         auto *stHost = new QWidget;
-        auto *stLay = new QVBoxLayout(stHost);
-        stLay->setContentsMargins(8, 4, 8, 8);
-        auto *stHint = new QLabel("Загрузка стикеров…");
-        stHint->setAlignment(Qt::AlignCenter);
-        stHint->setStyleSheet(QString("color:%1;").arg(pal().textSecondary.name()));
-        stLay->addWidget(stHint);
+        auto *stGrid = new QGridLayout(stHost);
+        stGrid->setContentsMargins(8, 8, 8, 8);
+        stGrid->setSpacing(6);
+        const QStringList stickers = {
+            "🥹","😂","🤣","😍","🥰","😘","😎","🤔","😭","😡","🤯","😴",
+            "👍","👎","👌","🙏","👏","🙌","🤝","🤦‍♂️","🤷‍♂️","💔","❤️","🔥",
+            "✨","💯","🎉","🎁","🚀","⭐","🌈","🐱","🐶","🦊","🐼","🦄",
+            "🍕","🍔","🍟","🍩","☕","🎮","⚽","🎯","🎵","🎬","💻","📱"
+        };
+        int si = 0;
+        for (const QString &e : stickers) {
+            auto *b = new QToolButton;
+            b->setText(e);
+            b->setFixedSize(72, 72);
+            b->setStyleSheet("QToolButton { font-size: 34px; background: rgba(90,140,210,28); border-radius: 16px; } QToolButton:hover { background: rgba(90,140,210,60); }");
+            connect(b, &QToolButton::clicked, this, [this, e] { emit stickerPicked(e); });
+            stGrid->addWidget(b, si / 4, si % 4);
+            ++si;
+        }
         stScroll->setWidget(stHost);
         m_stack->addWidget(stScroll);
-        // GIF panel
+
+        // GIFs come from the server, which talks to GIPHY.
         auto *gifScroll = new QScrollArea;
         gifScroll->setWidgetResizable(true);
+        gifScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         auto *gifHost = new QWidget;
         auto *gifLay = new QVBoxLayout(gifHost);
         auto *gifSearch = new QLineEdit;
-        gifSearch->setPlaceholderText("Поиск GIF (Giphy)");
+        gifSearch->setPlaceholderText("Поиск GIF (GIPHY)");
         gifLay->addWidget(gifSearch);
         auto *gifGrid = new QGridLayout;
         gifLay->addLayout(gifGrid);
@@ -120,77 +141,75 @@ public:
         gifScroll->setWidget(gifHost);
         m_stack->addWidget(gifScroll);
 
-        // Load stickers when tab selected
-        auto loadStickers = [this, stLay, stHint]() {
-            if (!AppContext::i().api) return;
-            AppContext::i().api->get("/api/stickers/packs", this, [this, stLay, stHint](const ApiResult &r) {
-                if (!r.ok) { stHint->setText("Стикеры недоступны"); return; }
-                stHint->hide();
-                const QJsonArray packs = r.json["packs"].toArray();
-                for (const QJsonValue &pv : packs) {
-                    const QJsonObject po = pv.toObject();
-                    const QString pid = po["id"].toString();
-                    auto *title = new QLabel(po["title"].toString());
-                    title->setStyleSheet("font-weight:bold; margin-top:8px;");
-                    stLay->addWidget(title);
-                    auto *grid = new QGridLayout;
-                    stLay->addLayout(grid);
-                    AppContext::i().api->get("/api/stickers/pack", QUrlQuery{{"id", pid}}, this, [this, grid](const ApiResult &r2) {
-                        if (!r2.ok) return;
-                        int i = 0;
-                        for (const QJsonValue &sv : r2.json["stickers"].toArray()) {
-                            const QString e = sv.toString();
-                            auto *b = new QToolButton;
-                            b->setText(e);
-                            b->setFixedSize(44, 44);
-                            b->setStyleSheet("QToolButton { font-size: 24px; border-radius: 8px; }");
-                            connect(b, &QToolButton::clicked, this, [this, e] { emit picked(e); });
-                            grid->addWidget(b, i / 6, i % 6);
-                            ++i;
-                        }
-                    });
-                }
-            });
-        };
         auto loadGifs = [this, gifGrid, gifSearch](const QString &q) {
             if (!AppContext::i().api) return;
-            while (QLayoutItem *it = gifGrid->takeAt(0)) { if (it->widget()) it->widget()->deleteLater(); delete it; }
+            while (QLayoutItem *it = gifGrid->takeAt(0)) {
+                if (it->widget()) it->widget()->deleteLater();
+                delete it;
+            }
             const QString path = q.trimmed().isEmpty() ? "/api/gif/trending" : "/api/gif/search";
-            QUrlQuery uq; if (!q.trimmed().isEmpty()) uq.addQueryItem("q", q.trimmed());
+            QUrlQuery uq;
+            if (!q.trimmed().isEmpty()) uq.addQueryItem("q", q.trimmed());
             AppContext::i().api->get(path, uq, this, [this, gifGrid](const ApiResult &r) {
-                if (!r.ok) return;
+                if (!r.ok) {
+                    auto *err = new QLabel("GIF временно недоступны: " + r.error);
+                    gifGrid->addWidget(err, 0, 0, 1, 3);
+                    return;
+                }
                 int i = 0;
                 for (const QJsonValue &gv : r.json["results"].toArray()) {
                     const QJsonObject g = gv.toObject();
                     const QString url = g["url"].toString();
+                    const QString preview = g["preview"].toString(url);
                     if (url.isEmpty()) continue;
                     auto *b = new QToolButton;
-                    b->setText("GIF");
                     b->setToolTip(g["title"].toString());
-                    b->setFixedSize(90, 70);
-                    connect(b, &QToolButton::clicked, this, [this, url] { emit picked(QString("🖼 %1").arg(url)); });
+                    b->setFixedSize(96, 76);
+                    b->setIconSize(QSize(92, 70));
+                    b->setText("GIF");
+                    b->setStyleSheet("QToolButton { background: rgba(90,140,210,28); border-radius: 10px; }");
+                    connect(b, &QToolButton::clicked, this, [this, url, g] {
+                        emit gifPicked(url, g["title"].toString());
+                    });
                     gifGrid->addWidget(b, i / 3, i % 3);
+                    const QUrl pu(preview);
+                    if (pu.isValid()) {
+                        QNetworkRequest req(pu);
+                        QNetworkReply *reply = m_imgNam.get(req);
+                        connect(reply, &QNetworkReply::finished, this, [reply, b] {
+                            if (reply->error() == QNetworkReply::NoError) {
+                                QPixmap pm;
+                                pm.loadFromData(reply->readAll());
+                                if (!pm.isNull()) {
+                                    b->setIcon(QIcon(pm));
+                                    b->setText({});
+                                }
+                            }
+                            reply->deleteLater();
+                        });
+                    }
                     if (++i >= 24) break;
                 }
             });
         };
+
         connect(gifSearch, &QLineEdit::returnPressed, this, [loadGifs, gifSearch] { loadGifs(gifSearch->text()); });
-        // load when switching tabs
-        for (int ti = 0; ti < m_tabs.size(); ++ti) {
-            connect(m_tabs[ti], &QToolButton::clicked, this, [ti, loadStickers, loadGifs] {
-                if (ti == 1) loadStickers();
-                if (ti == 2) loadGifs({});
-            });
-        }
-        l->addWidget(m_stack, 1);
+        connect(m_tabs[1], &QToolButton::clicked, this, [this] {});
+        connect(m_tabs[2], &QToolButton::clicked, this, [loadGifs, gifSearch] { loadGifs(gifSearch->text()); });
+
+        select(0);
         connect(m_search, &QLineEdit::textChanged, this, [this](const QString &t) {
             for (auto *b : m_all) b->setVisible(t.isEmpty() || b->text().contains(t));
         });
-        select(0);
     }
+
     void refresh() { select(m_stack->currentIndex()); }
+
 signals:
     void picked(const QString &emoji);
+    void stickerPicked(const QString &emoji);
+    void gifPicked(const QString &url, const QString &title);
+
 private:
     void select(int i) {
         m_stack->setCurrentIndex(i);
@@ -199,10 +218,10 @@ private:
                                          .arg(k == i ? pal().accent.name() : "transparent", k == i ? pal().link.name() : pal().textSecondary.name()));
     }
     QVector<QToolButton *> m_tabs, m_all;
-    QLineEdit *m_search;
-    QStackedWidget *m_stack;
+    QLineEdit *m_search = nullptr;
+    QStackedWidget *m_stack = nullptr;
+    QNetworkAccessManager m_imgNam;
 };
-
 // ---------------------------------------------------------------- input
 InputEdit::InputEdit(QWidget *parent) : QPlainTextEdit(parent) {
     setPlaceholderText("Сообщение...");

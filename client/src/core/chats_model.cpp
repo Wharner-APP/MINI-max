@@ -274,7 +274,7 @@ QJsonObject ChatsModel::toJson() const {
         for (const Message &m : c.messages)
             msgs.append(QJsonObject{{"id", double(m.id)}, {"out", m.outgoing}, {"sender", m.sender}, {"text", m.text},
                                     {"reply", m.replyTo}, {"edited", m.edited}, {"status", m.status},
-                                    {"time", m.time.toString(Qt::ISODate)}, {"media_id", double(m.mediaId)}});
+                                    {"time", m.time.toString(Qt::ISODate)}, {"media_id", double(m.mediaId)}, {"kind", m.kind}});
         arr.append(QJsonObject{{"id", double(c.id)}, {"kind", int(c.kind)}, {"title", c.title}, {"username", c.username},
                                {"about", c.about}, {"unread", c.unread}, {"pinned", c.pinned}, {"muted", c.muted},
                                {"archived", c.archived}, {"auto_delete", c.autoDeleteSec},
@@ -322,6 +322,7 @@ void ChatsModel::fromJson(const QJsonObject &o) {
             m.status = mo["status"].toInt();
             m.time = QDateTime::fromString(mo["time"].toString(), Qt::ISODate);
             m.mediaId = qint64(mo["media_id"].toDouble());
+            m.kind = mo["kind"].toString("text");
             c.messages.append(m);
         }
         m_chats.append(c);

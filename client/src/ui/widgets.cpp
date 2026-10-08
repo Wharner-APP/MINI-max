@@ -5,6 +5,7 @@
 #include <QPainterPath>
 
 #include "ui/icons.h"
+#include "core/prefs.h"
 #include "ui/theme.h"
 
 QColor avatarColor(qint64 id) {
@@ -126,4 +127,14 @@ void ClickRow::paintEvent(QPaintEvent *) {
         p.setPen(m_danger ? c.danger : c.text);
     }
     p.drawText(QRect(x, 0, right - x, height()), Qt::AlignVCenter | Qt::AlignLeft, fm.elidedText(m_text, Qt::ElideRight, right - x));
+}
+
+QPixmap profileAvatarPixmap(int size, const QString &title, qint64 id) {
+    const QString path = Prefs::instance().get("profile/avatar_path").toString();
+    if (!path.isEmpty()) {
+        QPixmap pm;
+        if (pm.load(path) && !pm.isNull())
+            return pm.scaled(size * 2, size * 2, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    }
+    return avatarPixmap(size, title, id);
 }

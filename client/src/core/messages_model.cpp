@@ -32,6 +32,8 @@ QVariant MessagesModel::data(const QModelIndex &index, int role) const {
     case EditedRole: return m.edited;
     case StatusRole: return m.status;
     case ViewsRole: return m.views;
+    case MediaKindRole: return m.kind;
+    case MediaIdRole: return m.mediaId;
     case ShowSenderRole: {
         if (c->kind != ChatKind::Group || m.outgoing || m.sender.isEmpty()) return false;
         if (index.row() == 0) return true;

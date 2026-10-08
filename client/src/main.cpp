@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
         }
     }
     QApplication app(argc, argv);
+    app.setQuitOnLastWindowClosed(false); // allow MINI max to continue in the system tray
 
     QCommandLineParser cli;
     cli.addHelpOption();

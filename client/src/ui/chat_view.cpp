@@ -18,6 +18,11 @@
 #include <QClipboard>
 #include <QTimer>
 #include <QMouseEvent>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QCamera>
+#include <QAudioInput>
+#include <QMediaFormat>
 #include <QMenu>
 
 #include "core/api.h"
@@ -415,6 +420,14 @@ ChatView::ChatView(ChatsModel *chats, QWidget *parent) : QWidget(parent), m_chat
     m_emoji = new EmojiPanel;
     m_emoji->hide();
     connect(m_emoji, &EmojiPanel::picked, this, [this](const QString &e) { m_input->insertPlainText(e); m_input->setFocus(); });
+    connect(m_emoji, &EmojiPanel::stickerPicked, this, [this](const QString &e) {
+        const Chat *c = m_chats->chat(chatRow());
+        if (c && AppContext::i().engine) AppContext::i().engine->sendSticker(c->id, e);
+    });
+    connect(m_emoji, &EmojiPanel::gifPicked, this, [this](const QString &url, const QString &title) {
+        const Chat *c = m_chats->chat(chatRow());
+        if (c && AppContext::i().engine) AppContext::i().engine->sendRemoteGif(c->id, QUrl(url), title);
+    });
 
     auto *main = new QVBoxLayout;
     main->setContentsMargins(0, 0, 0, 0);
@@ -534,6 +547,80 @@ void ChatView::attach() {
     }
 }
 
+
+void ChatView::startRecording(bool video) {
+    if (m_recording || chatRow() < 0) return;
+    if (!AppContext::i().engine) return;
+    const QString suffix = video ? ".mp4" : ".m4a";
+    const QString path = QDir::tempPath() + QString("/minimax-%1-%2%3")
+        .arg(video ? "round" : "voice")
+        .arg(QDateTime::currentMSecsSinceEpoch())
+        .arg(suffix);
+    m_recordPath = path;
+    m_recordKind = video ? "round" : "voice";
+    m_recording = true;
+
+    if (!m_recorder) {
+        m_recorder = new QMediaRecorder(this);
+        connect(m_recorder, &QMediaRecorder::errorOccurred, this, [this](QMediaRecorder::Error, const QString &error) {
+            m_recording = false;
+            QFile::remove(m_recordPath);
+            emit notice("Запись", error.isEmpty() ? "Не удалось записать мультимедиа" : error);
+            m_recordPath.clear();
+            m_recordKind.clear();
+        });
+    }
+    if (!m_audioInput) m_audioInput = new QAudioInput(this);
+    m_captureSession.setAudioInput(m_audioInput);
+    m_captureSession.setRecorder(m_recorder);
+
+    QMediaFormat fmt;
+    if (video) {
+        if (!m_camera) m_camera = new QCamera(this);
+        m_captureSession.setCamera(m_camera);
+        fmt.setFileFormat(QMediaFormat::MPEG4);
+        m_recorder->setMediaFormat(fmt);
+        m_recorder->setOutputLocation(QUrl::fromLocalFile(m_recordPath));
+        m_camera->start();
+    } else {
+        m_captureSession.setCamera(nullptr);
+        fmt.setFileFormat(QMediaFormat::MPEG4Audio);
+        m_recorder->setMediaFormat(fmt);
+        m_recorder->setOutputLocation(QUrl::fromLocalFile(m_recordPath));
+    }
+    m_recorder->record();
+    emit notice(video ? "Кружок" : "Голосовое",
+                video ? "Идёт запись видео-кружка… отпустите кнопку для отправки."
+                      : "Идёт запись… отпустите кнопку для отправки.");
+}
+
+void ChatView::stopRecording() {
+    if (!m_recording || !m_recorder) return;
+    m_recording = false;
+    m_recorder->stop();
+    if (m_camera) m_camera->stop();
+    QTimer::singleShot(250, this, &ChatView::finishRecording);
+}
+
+void ChatView::finishRecording() {
+    const QString path = m_recordPath;
+    const QString kind = m_recordKind;
+    m_recordPath.clear();
+    m_recordKind.clear();
+    if (path.isEmpty() || !QFileInfo::exists(path) || QFileInfo(path).size() <= 0) {
+        QFile::remove(path);
+        emit notice(kind == "round" ? "Кружок" : "Голосовое", "Запись не сохранена.");
+        return;
+    }
+    const Chat *c = m_chats->chat(chatRow());
+    if (!c || !AppContext::i().engine) {
+        QFile::remove(path);
+        return;
+    }
+    AppContext::i().engine->sendMediaFile(c->id, path, kind, kind == "round" ? "Кружок" : "Голосовое сообщение");
+    QTimer::singleShot(1000, this, [path] { QFile::remove(path); });
+}
+
 bool ChatView::eventFilter(QObject *o, QEvent *e) {
     if (o == m_list->viewport() && e->type() == QEvent::Resize) {
         m_delegate->setViewportWidth(m_list->viewport()->width());
@@ -546,36 +633,20 @@ bool ChatView::eventFilter(QObject *o, QEvent *e) {
                 m_sendBtn->setProperty("holding", false);
                 m_sendBtn->setProperty("pressMs", QDateTime::currentMSecsSinceEpoch());
                 QTimer::singleShot(180, this, [this] {
-                    if (!m_sendBtn || !(m_sendBtn->property("pressMs").toLongLong() > 0)) return;
-                    // still pressed after 180ms → start recording
+                    if (!m_sendBtn || m_sendBtn->property("pressMs").toLongLong() <= 0) return;
                     if (!(QApplication::mouseButtons() & Qt::LeftButton)) return;
                     m_sendBtn->setProperty("holding", true);
                     const bool circle = m_sendBtn->property("circleMode").toBool();
-                    emit notice(circle ? "Кружок" : "Голосовое",
-                                circle ? "Идёт запись видео-кружка… отпустите, чтобы отправить"
-                                       : "Идёт запись… отпустите, чтобы отправить");
+                    startRecording(circle);
                 });
             }
         } else if (e->type() == QEvent::MouseButtonRelease) {
-            const qint64 pressed = m_sendBtn->property("pressMs").toLongLong();
             m_sendBtn->setProperty("pressMs", 0);
             if (m_sendBtn->property("holding").toBool()) {
                 m_sendBtn->setProperty("holding", false);
-                const bool circle = m_sendBtn->property("circleMode").toBool();
-                const int row = chatRow();
-                if (row >= 0) {
-                    const QString kind = circle ? "video_note" : "voice";
-                    emit sendRequested(row, circle ? "🎥 [кружок]" : "🎤 [голосовое]");
-                    if (Engine *eng = AppContext::i().engine) {
-                        Chat *c = m_chats->chat(row);
-                        if (c) eng->sendText(c->id, circle ? "🎥 [кружок]" : "🎤 [голосовое]");
-                    }
-                }
-                emit notice(circle ? "Кружок" : "Голосовое", "Отправлено (заглушка до полной записи с микрофона/камеры)");
+                stopRecording();
                 return true;
             }
-            // short click handled by clicked signal (mode toggle)
-            Q_UNUSED(pressed);
         }
     }
     return QWidget::eventFilter(o, e);

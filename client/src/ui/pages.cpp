@@ -803,7 +803,7 @@ void settings(PopupHost *h) {
     auto *hl = new QHBoxLayout(head);
     hl->setContentsMargins(22, 8, 22, 12);
     auto *av = new QLabel;
-    av->setPixmap(avatarPixmap(66, s.displayName, qHash(s.login)));
+    av->setPixmap(profileAvatarPixmap(66, s.displayName, qHash(s.login)));
     hl->addWidget(av);
     auto *nm = new QLabel(QString("<b style='font-size:15px'>%1</b><br><span style='color:%2'>@%3</span>").arg(s.displayName.toHtmlEscaped(), pal().textSecondary.name(), s.login.toHtmlEscaped()));
     hl->addWidget(nm, 1);

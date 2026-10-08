@@ -558,12 +558,14 @@ void accountPage(PopupHost *h) {
         });
     });
     pg->row("", "Имя пользователя", "@" + s.login);
-    pg->row("edit", "Цвет имени", Prefs::instance().get("profile/name_color", "#4a96f9").toString(), [h] {
+    pg->row("edit", "Цвет имени", QString::number(Prefs::instance().get("profile/name_color_index", 0).toInt()), [h] {
         static const QStringList colors = {"#4a96f9", "#2fb78a", "#e0508a", "#a95ee0", "#f5a623", "#e74c3c", "#1abc9c", "#9b59b6"};
-        h->choice("Цвет имени", colors, 0, [](int i) {
-            static const QStringList colors = {"#4a96f9", "#2fb78a", "#e0508a", "#a95ee0", "#f5a623", "#e74c3c", "#1abc9c", "#9b59b6"};
-            if (i >= 0 && i < colors.size()) Prefs::instance().set("profile/name_color", colors[i]);
-        });
+        h->choice("Цвет имени", colors, qBound(0, Prefs::instance().get("profile/name_color_index", 0).toInt(), colors.size() - 1),
+                  [](int i) {
+                      Prefs::instance().set("profile/name_color_index", i);
+                      if (Engine *eng = AppContext::i().engine)
+                          eng->updateProfile({{"name_color", i}});
+                  });
     });
     pg->row("calendar", "День рождения", Prefs::instance().get("profile/birthday", "не указан").toString(), [h] {
         h->input("День рождения", "ДД.ММ.ГГГГ", Prefs::instance().get("profile/birthday").toString(), "Сохранить", [](const QString &v) {
@@ -573,8 +575,6 @@ void accountPage(PopupHost *h) {
         });
     });
     pg->note("С помощью имени пользователя другие люди смогут связаться с Вами, не зная Вашего пароля.");
-    pg->row("edit", "Цвет имени", s.displayName.left(10));
-    pg->row("gift", "День рождения", "Добавить");
     pg->divider();
     auto *out = pg->row("close", "Выйти из аккаунта", {}, [h] {
         h->dialog("Выйти из аккаунта?", "Локальные сообщения останутся на этом компьютере в зашифрованном виде.",

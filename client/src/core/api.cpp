@@ -2,6 +2,7 @@
 
 #include <QJsonDocument>
 #include <QNetworkReply>
+#include <QTimer>
 #include <QNetworkRequest>
 #include <mm/build_info.h>
 
@@ -21,7 +22,6 @@ QUrl ApiClient::makeUrl(const QString &path, const QUrlQuery &query) const {
 QNetworkRequest ApiClient::request(const QUrl &url, bool captchaKey) const {
     QNetworkRequest r(url);
     r.setRawHeader("Accept", "application/json");
-    r.setRawHeader("Connection", "close");
     r.setRawHeader("Cache-Control", "no-cache, no-store");
     r.setRawHeader("Pragma", "no-cache");
     r.setRawHeader("User-Agent", QByteArray("MINImax/") + MM_VERSION_STR + " (" + MM_PLATFORM_ID + ")");
@@ -31,15 +31,47 @@ QNetworkRequest ApiClient::request(const QUrl &url, bool captchaKey) const {
     return r;
 }
 
-void ApiClient::track(QNetworkReply *r, QObject *ctx, Callback cb) {
-    connect(r, &QNetworkReply::finished, ctx ? ctx : this, [this, r, cb] {
+void ApiClient::track(QNetworkReply *r, QObject *ctx, Callback cb, int attempt) {
+    connect(r, &QNetworkReply::finished, ctx ? ctx : this, [this, r, ctx, cb, attempt] {
+        const QNetworkReply::NetworkError err = r->error();
+        const bool transient =
+            err == QNetworkReply::OperationCanceledError ||
+            err == QNetworkReply::RemoteHostClosedError ||
+            err == QNetworkReply::TemporaryNetworkFailureError ||
+            err == QNetworkReply::NetworkSessionFailedError ||
+            err == QNetworkReply::ConnectionRefusedError ||
+            err == QNetworkReply::HostNotFoundError ||
+            err == QNetworkReply::UnknownNetworkError;
+
+        if (transient && attempt < 2) {
+            const QString path = r->request().url().path();
+            const QUrl url = r->request().url();
+            resetNetworkConnections();
+            r->deleteLater();
+            QTimer::singleShot(350 * (attempt + 1), this, [this, url, ctx, cb, attempt] {
+                QNetworkRequest rq = request(url, false);
+                const bool auth = !m_token.isEmpty();
+                Q_UNUSED(auth);
+                if (!m_token.isEmpty()) rq.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+                rq.setRawHeader("Accept", "application/json");
+                rq.setRawHeader("User-Agent", QByteArray("MINImax/") + MM_VERSION_STR + " (" + MM_PLATFORM_ID + ")");
+                rq.setTransferTimeout(m_timeout);
+                QNetworkReply *nr = nullptr;
+                const QByteArray body = QByteArray();
+                // Retry GET/HEAD directly; POST/PUT bodies are retried by their caller only if needed.
+                nr = m_nam.get(rq);
+                track(nr, ctx, cb, attempt + 1);
+            });
+            Q_UNUSED(path);
+            return;
+        }
+
         ApiResult res;
         res.status = r->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         res.body = r->readAll();
         const QJsonDocument doc = QJsonDocument::fromJson(res.body);
         if (doc.isObject()) res.json = doc.object();
         res.ok = r->error() == QNetworkReply::NoError && res.status >= 200 && res.status < 300;
-        if (r->error() != QNetworkReply::NoError) resetNetworkConnections();
         if (!res.ok) {
             res.error = res.json.value("message").toString();
             if (res.error.isEmpty()) res.error = res.json.value("error").toString();

@@ -130,6 +130,7 @@ MessageDelegate::Layout MessageDelegate::layout(const QFont &font, const QModelI
     Layout L;
     const bool out = idx.data(MessagesModel::OutgoingRole).toBool();
     const QString text = idx.data(MessagesModel::TextRole).toString();
+    const QString mediaKind = idx.data(MessagesModel::MediaKindRole).toString();
     L.timeText = (idx.data(MessagesModel::EditedRole).toBool() ? QStringLiteral("изменено ") : QString()) + idx.data(MessagesModel::TimeRole).toString();
     const int views = idx.data(MessagesModel::ViewsRole).toInt();
     if (views > 0) L.timeText = (views >= 1000 ? QString::number(views / 1000.0, 'f', 1) + "K" : QString::number(views)) + "  " + L.timeText;
@@ -198,6 +199,34 @@ void MessageDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt, const 
     p->setBrush(out ? c.bubbleOut : c.bubbleIn);
     p->drawRoundedRect(L.bubble, kRadius, kRadius);
     p->setFont(opt.font);
+    if (mediaKind == "sticker") {
+        QFont sf = opt.font;
+        sf.setPointSizeF(opt.font.pointSizeF() + 22);
+        p->setFont(sf);
+        p->setPen(c.text);
+        p->drawText(L.text, Qt::AlignCenter, text);
+    } else if (mediaKind == "gif") {
+        QFont gf = opt.font;
+        gf.setPointSizeF(opt.font.pointSizeF() + 2);
+        gf.setBold(true);
+        p->setFont(gf);
+        p->setPen(c.link);
+        p->drawText(L.text, Qt::AlignCenter, "GIF");
+        p->setPen(c.textSecondary);
+        p->drawText(L.text.adjusted(0, 26, 0, 0), Qt::AlignCenter, text.isEmpty() ? "Анимация" : text.left(32));
+    } else if (mediaKind == "voice") {
+        p->setPen(c.link);
+        p->drawText(L.text, Qt::AlignCenter, "🎤  Голосовое сообщение");
+    } else if (mediaKind == "round") {
+        p->setPen(c.link);
+        p->drawText(L.text, Qt::AlignCenter, "🎥  Видеосообщение");
+    } else {
+        QTextLayout tl(idx.data(MessagesModel::TextRole).toString(), opt.font);
+        int h, w1, w2;
+        wrap(tl, L.text.width(), &h, &w1, &w2);
+        p->setPen(c.text);
+        tl.draw(p, QPointF(L.text.left(), L.text.top()));
+    }
     static const char *senderCols[] = {"#e17076", "#faa774", "#a695e7", "#7bc862", "#6ec9cb", "#65aadd", "#ee7aae"};
     if (!L.senderName.isEmpty()) {
         QFont b = opt.font;
@@ -221,13 +250,6 @@ void MessageDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt, const 
         p->setFont(opt.font);
         p->setPen(c.text);
         p->drawText(L.reply.adjusted(10, 18, -4, -2), Qt::AlignLeft | Qt::AlignVCenter, QFontMetrics(opt.font).elidedText(L.replyText, Qt::ElideRight, L.reply.width() - 14));
-    }
-    {
-        QTextLayout tl(idx.data(MessagesModel::TextRole).toString(), opt.font);
-        int h, w1, w2;
-        wrap(tl, L.text.width(), &h, &w1, &w2);
-        p->setPen(c.text);
-        tl.draw(p, QPointF(L.text.left(), L.text.top()));
     }
     const auto reacts = idx.data(MessagesModel::ReactionsRole).toList();
     int rx = L.reactions.left();

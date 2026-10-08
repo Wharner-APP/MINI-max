@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QDir>
 #include <QStandardPaths>
+#include <QSaveFile>
 #include <QStackedWidget>
 #include <QTimer>
 #include <mm/build_info.h>

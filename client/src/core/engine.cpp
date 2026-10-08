@@ -581,6 +581,15 @@ void Engine::sendRemoteGif(qint64 chatId, const QUrl &url, const QString &title)
     });
 }
 
+void Engine::sendSticker(qint64 chatId, const QString &emoji) {
+    if (emoji.trimmed().isEmpty()) return;
+    m_api->post("/api/messages/send",
+                {{"chat_id", double(chatId)}, {"kind", "sticker"}, {"body", emoji}, {"enc", 0}},
+                this, [this](const ApiResult &r) {
+                    if (!r.ok) emit notice("Стикер", r.error);
+                });
+}
+
 void Engine::search(const QString &query, std::function<void(const QVector<SearchHit> &)> cb) {
     const QString q = query.trimmed();
     if (q.size() < 2) { cb({}); return; }

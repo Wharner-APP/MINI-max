@@ -18,6 +18,7 @@
 #include <QSysInfo>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QTimer>
 #include <mm/build_info.h>
 #include <mm/paths.h>
 

@@ -14,6 +14,7 @@ using MmEnterEvent = QEvent;
 QColor avatarColor(qint64 id);
 void paintAvatar(QPainter *p, const QRect &r, const QString &title, qint64 id, const QString &icon = {});
 QPixmap avatarPixmap(int size, const QString &title, qint64 id, const QString &icon = {});
+QPixmap profileAvatarPixmap(int size, const QString &title, qint64 id);
 
 // Telegram-style toggle switch.
 class Switch : public QAbstractButton {

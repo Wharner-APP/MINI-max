@@ -476,7 +476,7 @@ void Engine::joinByUsername(const QString &username) {
 }
 
 void Engine::updateProfile(const QJsonObject &fields) {
-    m_api->post("/api/profile/update", fields, this, [this](const ApiResult &r) {
+    m_api->post("/api/profile/update", fields, this, [this, fields](const ApiResult &r) {
         if (!r.ok) { emit notice("Профиль", r.error); return; }
         if (r.json.contains("user") && r.json["user"].isObject()) {
             const QJsonObject u = r.json["user"].toObject();

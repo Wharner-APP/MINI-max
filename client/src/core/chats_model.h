@@ -21,6 +21,7 @@ struct Message {
     QVector<Reaction> reactions;
     int views = 0;
     qint64 mediaId = 0;
+    QString kind = "text";
 };
 
 enum class ChatKind { Private, Group, Channel, Bot, Saved };

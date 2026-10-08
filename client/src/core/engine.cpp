@@ -12,6 +12,7 @@
 #include <QUuid>
 #include <QRandomGenerator>
 #include <QTemporaryFile>
+#include <QDir>
 #include <QRegularExpression>
 
 #include "core/api.h"
@@ -168,6 +169,8 @@ void Engine::upsertChat(const QJsonObject &c) {
         m.status = m.outgoing ? 1 : 2;
         m.edited = mo["edited"].toBool();
         m.views = mo["views"].toInt();
+        m.kind = mo["kind"].toString("text");
+        m.mediaId = qint64(mo["media"].toObject()["id"].toDouble(mo["media_id"].toDouble()));
         if (mo.contains("reactions") && mo["reactions"].isArray()) {
             for (const QJsonValue &rv : mo["reactions"].toArray()) {
                 const QJsonObject ro = rv.toObject();
@@ -219,6 +222,8 @@ void Engine::ingestMessage(const QJsonObject &mo) {
     m.status = m.outgoing ? 1 : 2;
     m.edited = mo["edited"].toBool();
     m.views = mo["views"].toInt();
+    m.kind = mo["kind"].toString("text");
+    m.mediaId = qint64(mo["media"].toObject()["id"].toDouble(mo["media_id"].toDouble()));
     if (mo.contains("reply_to") && mo["reply_to"].toDouble() > 0) {
         m.replyTo = QString::number(qint64(mo["reply_to"].toDouble()));
     }
@@ -333,6 +338,7 @@ void Engine::sendText(qint64 chatId, const QString &text, qint64 replyTo) {
         local.text = text;
         local.time = QDateTime::currentDateTime();
         local.status = 0;
+        local.kind = "text";
         m_chats->addServerMessage(row, local);
         const qint64 localId = local.id;
 

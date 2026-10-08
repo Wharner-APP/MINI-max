@@ -37,7 +37,7 @@ public:
 
 private:
     QNetworkRequest request(const QUrl &url, bool captchaKey) const;
-    void track(QNetworkReply *r, QObject *ctx, Callback cb, int attempt = 0);
+    void track(QNetworkReply *r, QObject *ctx, Callback cb);
     QUrl makeUrl(const QString &path, const QUrlQuery &query = {}) const;
     QNetworkAccessManager m_nam;
     QUrl m_base;

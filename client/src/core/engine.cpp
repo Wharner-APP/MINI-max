@@ -533,17 +533,24 @@ void Engine::downloadMedia(qint64 mediaId, std::function<void(const QByteArray &
 }
 
 
-void Engine::sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption) {
+void Engine::sendMediaFile(qint64 chatId, const QString &path, const QString &kind, const QString &caption,
+                              std::function<void(bool, const QString &)> done) {
     const int row = m_chats->rowOfId(chatId);
-    if (row < 0) return;
-    uploadFile(path, kind, false, [this, chatId, kind, caption](qint64 mid, const QString &err) {
+    if (row < 0) { if (done) done(false, "Чат не найден"); return; }
+    uploadFile(path, kind, false, [this, chatId, kind, caption, done](qint64 mid, const QString &err) {
         if (mid <= 0) {
             emit notice("Медиа", err.isEmpty() ? "Не удалось загрузить файл" : err);
+            if (done) done(false, err);
             return;
         }
         QJsonObject body{{"chat_id", double(chatId)}, {"kind", kind}, {"media_id", double(mid)}, {"body", caption}, {"enc", 0}};
-        m_api->post("/api/messages/send", body, this, [this](const ApiResult &r) {
-            if (!r.ok) emit notice("Медиа", r.error);
+        m_api->post("/api/messages/send", body, this, [this, done](const ApiResult &r) {
+            if (!r.ok) {
+                emit notice("Медиа", r.error);
+                if (done) done(false, r.error);
+            } else if (done) {
+                done(true, {});
+            }
         });
     });
 }

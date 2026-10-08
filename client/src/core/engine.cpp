@@ -297,16 +297,26 @@ QString Engine::decryptBody(qint64 chatId, const QString &encBody, bool enc) {
     return QStringLiteral("[зашифровано]");
 }
 
-void Engine::ensurePeerKey(const QString &login, std::function<void(const QByteArray &pub)> cb) {
+void Engine::ensurePeerKey(const QString &login, std::function<void(const QByteArray &pub)> cb, int attempt) {
     if (m_peerPubs.contains(login)) { cb(m_peerPubs[login]); return; }
     QUrlQuery q; q.addQueryItem("login", login);
-    m_api->get("/api/keys/get", q, this, [this, login, cb](const ApiResult &r) {
+    m_api->get("/api/keys/get", q, this, [this, login, cb, attempt](const ApiResult &r) {
         QByteArray pub;
         if (r.ok) {
             pub = b64dec(r.json["pub"].toString());
-            if (!pub.isEmpty()) m_peerPubs[login] = pub;
+            if (!pub.isEmpty()) {
+                m_peerPubs[login] = pub;
+                cb(pub);
+                return;
+            }
         }
-        cb(pub);
+        if (attempt < 8) {
+            QTimer::singleShot(500, this, [this, login, cb, attempt] {
+                ensurePeerKey(login, cb, attempt + 1);
+            });
+        } else {
+            cb({});
+        }
     });
 }
 
@@ -358,10 +368,13 @@ void Engine::sendText(qint64 chatId, const QString &text, qint64 replyTo) {
         ensurePeerKey(c->peerLogin, [this, chatId, doSend](const QByteArray &pub) {
             if (!pub.isEmpty() && !m_identity.priv.isEmpty()) {
                 const QByteArray sk = mmcrypto::sharedKey(m_identity.priv, m_identity.pub, pub);
-                if (!sk.isEmpty()) m_chatKeys[chatId] = sk;
+                if (!sk.isEmpty()) {
+                    m_chatKeys[chatId] = sk;
+                    doSend(true);
+                    return;
+                }
             }
-            // If peer key missing, still send plaintext (server allows).
-            doSend(true);
+            emit notice("Шифрование", "Не удалось получить ключ собеседника. Убедитесь, что собеседник вошёл в аккаунт и дождитесь повторной попытки.");
         });
     } else {
         doSend(true);

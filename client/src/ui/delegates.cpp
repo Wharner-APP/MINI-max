@@ -139,6 +139,7 @@ MessageDelegate::Layout MessageDelegate::layout(const QFont &font, const QModelI
     L.replyAuthor = idx.data(MessagesModel::ReplyAuthorRole).toString();
     if (idx.data(MessagesModel::ShowSenderRole).toBool()) L.senderName = idx.data(MessagesModel::SenderRole).toString();
     QFont tf = font;
+    if (mediaKind == "sticker") font.setPointSizeF(font.pointSizeF() + 20);
     tf.setPointSizeF(font.pointSizeF() - 2);
     const QFontMetrics fm(font), tfm(tf);
     const int maxBubble = qMax(160, qMin(480, m_width - 2 * kSide - 40));
@@ -179,6 +180,7 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem &opt, const QModelInd
 void MessageDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt, const QModelIndex &idx) const {
     const Palette &c = pal();
     const bool out = idx.data(MessagesModel::OutgoingRole).toBool();
+    const QString mediaKind = idx.data(MessagesModel::MediaKindRole).toString();
     const Layout L = layout(opt.font, idx);
     p->save();
     p->setRenderHint(QPainter::Antialiasing);

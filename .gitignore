@@ -1,0 +1,7 @@
+build/
+dist/
+.cache/
+*.user
+__pycache__/
+keys/
+update_private.key

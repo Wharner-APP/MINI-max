@@ -1,0 +1,36 @@
+# MINI max server configuration. Every key is required: the server refuses
+# to start if one is missing (nothing is hardcoded in the source).
+
+[server]
+name = "MINI max"            # reported to clients in HELLO
+host = "127.0.0.1"           # listen address
+port = 7443                  # listen port
+backlog = 512                # listen() backlog
+
+[limits]
+max_connections = 10000      # simultaneous client connections
+max_frame_bytes = 16777216   # max payload size of one MMProto frame (16 MiB)
+
+[log]
+level = "info"               # debug | info | warn | error
+
+# --- sections below are consumed by subsystems added in later steps ---
+
+[database]
+url = "postgresql://minimax:minimax@127.0.0.1:5432/minimax"
+pool_size = 8
+
+[redis]
+host = "127.0.0.1"
+port = 6379
+
+[minio]
+endpoint = "http://127.0.0.1:9000"
+bucket = "minimax-media"
+access_key = "minioadmin"
+secret_key = "minioadmin"
+
+[tls]
+enabled = false
+cert_file = "configs/tls/server.crt"
+key_file = "configs/tls/server.key"

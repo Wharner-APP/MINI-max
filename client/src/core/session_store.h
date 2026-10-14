@@ -15,4 +15,7 @@ void clear(const QString &dir);
 // Chats file = JSON sealed with the password-derived local key.
 bool saveChats(const QString &dir, const ChatsModel &m, const QByteArray &localKey);
 bool loadChats(const QString &dir, ChatsModel *m, const QByteArray &localKey);
+// Identity key pair - encrypted with localKey (derived from password)
+bool saveIdentity(const QString &dir, const QString &login, const QByteArray &localKey, const mmcrypto::KeyPair &kp);
+bool loadIdentity(const QString &dir, const QString &login, const QByteArray &localKey, mmcrypto::KeyPair *kp);
 }

@@ -55,4 +55,19 @@ bool loadChats(const QString &dir, ChatsModel *m, const QByteArray &localKey) {
     m->fromJson(QJsonDocument::fromJson(plain).object());
     return true;
 }
+
+bool saveIdentity(const QString &dir, const QString &login, const QByteArray &localKey, const mmcrypto::KeyPair &kp) {
+    QJsonObject o{{"pub", QString::fromLatin1(kp.pub.toBase64())}, {"priv", QString::fromLatin1(kp.priv.toBase64())}};
+    return writeFile(dir + "/identity_" + login + ".mm", mmcrypto::seal(localKey, QJsonDocument(o).toJson(QJsonDocument::Compact)));
+}
+
+bool loadIdentity(const QString &dir, const QString &login, const QByteArray &localKey, mmcrypto::KeyPair *kp) {
+    bool ok = false;
+    const QByteArray plain = mmcrypto::open(localKey, readFile(dir + "/identity_" + login + ".mm"), &ok);
+    if (!ok) return false;
+    const QJsonObject o = QJsonDocument::fromJson(plain).object();
+    kp->pub = QByteArray::fromBase64(o["pub"].toString().toLatin1());
+    kp->priv = QByteArray::fromBase64(o["priv"].toString().toLatin1());
+    return !kp->pub.isEmpty() && !kp->priv.isEmpty();
+}
 }  // namespace SessionStore

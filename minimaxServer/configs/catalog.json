@@ -1,0 +1,20 @@
+{
+  "currency": "RUB",
+  "business_monthly_minor": 29900,
+  "plans": [
+    {"id": "premium_24m", "months": 24, "price_minor": 149500},
+    {"id": "premium_12m", "months": 12, "price_minor": 199000},
+    {"id": "premium_1m",  "months": 1,  "price_minor": 29900}
+  ],
+  "star_packs": [
+    {"stars": 50, "price_minor": 9900}, {"stars": 100, "price_minor": 19900}, {"stars": 500, "price_minor": 94900}, {"stars": 1000, "price_minor": 189900}
+  ],
+  "gifts": [
+    {"id": "heart", "name": "Сердце", "stars": 15}, {"id": "bear", "name": "Мишка", "stars": 15},
+    {"id": "box", "name": "Подарок", "stars": 25}, {"id": "rose", "name": "Роза", "stars": 25},
+    {"id": "cake", "name": "Торт", "stars": 50}, {"id": "bouquet", "name": "Букет", "stars": 50},
+    {"id": "rocket", "name": "Ракета", "stars": 50}, {"id": "cup", "name": "Кубок", "stars": 100},
+    {"id": "ring", "name": "Кольцо", "stars": 100}, {"id": "diamond", "name": "Бриллиант", "stars": 100},
+    {"id": "wine", "name": "Шампанское", "stars": 50}, {"id": "torch", "name": "Факел", "stars": 500}
+  ]
+}

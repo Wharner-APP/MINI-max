@@ -1,0 +1,1 @@
+THIS SERVER ARCHIVE CONTAINS SECRETS. Do not upload the whole folder or keys/update_private.key to a public repository.

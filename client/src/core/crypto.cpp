@@ -41,7 +41,7 @@ KeyPair generateKeyPair() {
 }
 
 QByteArray sharedKey(const QByteArray &myPriv, const QByteArray &myPub, const QByteArray &theirPub) {
-    if (!init() || myPriv.size() != int(crypto_scalarmult_SCALARBYTES) || theirPub.size() != int(crypto_scalarmult_BYTES)) return {};
+    if (!init() || myPriv.size() != int(crypto_box_SECRETKEYBYTES) || theirPub.size() != int(crypto_box_PUBLICKEYBYTES)) return {};
     QByteArray raw(crypto_scalarmult_BYTES, 0);
     if (crypto_scalarmult(w(raw), u(myPriv), u(theirPub)) != 0) return {};
     // order the public keys so both sides hash identical input

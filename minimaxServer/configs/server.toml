@@ -1,0 +1,83 @@
+# MINI max server (Python). Run it with run_server.cmd (Windows).
+[server]
+name = "MINI max"
+host = "0.0.0.0"
+port = 8080              # the bore tunnel must point to this port: bore local 8080 --to bore.pub
+max_body_bytes = 4194304
+sync_wait_seconds = 20   # long-poll limit
+
+[storage]
+db_path = "data/minimax.db"
+updates_dir = "data/updates"      # data/updates/<platform>/{manifest.json,manifest.sig,files/...}
+log_file = "data/server.log"
+
+[captcha]
+# auto: hCaptcha if sitekey+secret are set, otherwise the built-in puzzle (needs Pillow)
+# hcaptcha | puzzle | off (off = NO captcha, tests only!)
+mode = "hcaptcha"
+hcaptcha_sitekey = "f3fca088-a1f8-45c4-bc2a-043cf192c2be"
+# SECRET key from the hCaptcha dashboard. Better: set env var MM_HCAPTCHA_SECRET.
+hcaptcha_secret = ""  # Set env var MM_HCAPTCHA_SECRET instead
+ttl_seconds = 180
+
+[security]
+one_account_per_device = true
+login_fail_limit = 10             # per login, per 10 minutes
+
+[moderation]
+report_ban_threshold = 10         # private chats can be banned by an admin only with MORE reports than this
+
+[payments]
+test_gateway = true               # test checkout page /pay/<id>; false = payments disabled
+
+[updates]
+private_key = "keys/update_private.key"
+public_key = "keys/update_public.key"
+
+[media]
+dir = "data/media"
+max_mb = 4096                     # hard cap; Free users are limited to 2048 MB, Premium to 4096 MB (see [free_limits]/[premium_limits])
+
+[limits]
+edit_window_hours = 48
+
+[calls]
+stun = ["stun:stun.l.google.com:19302"]
+turn_urls = []                    # e.g. ["turn:turn.example.com:3478?transport=udp"]  (install coturn separately)
+turn_secret = ""                  # coturn static-auth-secret (use-auth-secret mode)
+max_group = 8                     # mesh group calls
+ring_seconds = 45
+
+[bots]
+max_per_user = 20
+callback_timeout = 8
+allow_private_webhooks = false    # true only for local development
+
+[gif]
+tenor_key = ""
+giphy_key = "7nuByz5FDiT2ActRdBda76Db5vrTC5eX"  # Giphy API key
+
+[stars]
+commission_percent = 0            # taken from tips / paid posts / bot invoices / paid messages
+convert_percent = 85              # gift -> stars
+upgrade_cost = 50                 # stars to upgrade a gift to a numbered collectible
+
+[free_limits]
+channels = 500
+folders = 10
+pinned_chats = 5
+public_links = 10
+upload_mb = 2048
+reactions = 1
+bio = 70
+caption = 1024
+
+[premium_limits]
+channels = 1000
+folders = 30
+pinned_chats = 10
+public_links = 20
+upload_mb = 4096
+reactions = 3
+bio = 140
+caption = 4096

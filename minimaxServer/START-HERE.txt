@@ -1,0 +1,9 @@
+MINI max Server — ready-to-run package
+
+1. Windows: run run_server.cmd.
+2. Default bind: 0.0.0.0:8080.
+3. hCaptcha and GIPHY are preconfigured in configs\server.toml.
+4. Update signing keys are in keys\. Never expose update_private.key.
+5. Auto-update files are served from data\updates\<platform>\.
+6. The client must have the matching update_public.key and the correct server address in configs\connect.ip.
+7. For Internet access, expose port 8080 through HTTPS/reverse proxy or a TCP tunnel.

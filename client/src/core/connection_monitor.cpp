@@ -23,7 +23,7 @@ void ConnectionMonitor::tick() {
     const ServerEndpoint configured = loadServerEndpoint(MmPaths::configDir());
     if (configured.valid() && configured.base != m_api->base()) {
         m_api->setBase(configured.base);
-        m_api->resetNetworkConnections();
+        // Сброс кэша происходит внутри setBase() без отмены запросов
     }
     m_pending = true;
     m_api->get("/api/ping", this, [this](const ApiResult &r) {

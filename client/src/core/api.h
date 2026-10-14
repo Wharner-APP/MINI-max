@@ -20,8 +20,9 @@ public:
     using Callback = std::function<void(const ApiResult &)>;
     ApiClient(const QUrl &base, int timeoutMs, QObject *parent = nullptr);
     QUrl base() const { return m_base; }
-    void setBase(const QUrl &base) { if (base != m_base) { m_base = base; m_nam.clearConnectionCache(); } }
+    void setBase(const QUrl &base) { if (base != m_base) { m_base = base; } }
     void resetNetworkConnections() { m_nam.clearConnectionCache(); }
+    void clearConnectionCacheOnly() { m_nam.clearConnectionCache(); }
     void setToken(const QString &t) { m_token = t; }
     QString token() const { return m_token; }
 

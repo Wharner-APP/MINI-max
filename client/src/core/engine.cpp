@@ -347,7 +347,6 @@ void Engine::sendText(qint64 chatId, const QString &text, qint64 replyTo) {
                 local.text = text;
                 local.time = QDateTime::currentDateTime();
                 local.status = 0;
-                local.kind = "text";
                 m_chats->addServerMessage(realRow, local);
                 const qint64 localId = local.id;
 
@@ -409,7 +408,6 @@ void Engine::sendText(qint64 chatId, const QString &text, qint64 replyTo) {
         local.text = text;
         local.time = QDateTime::currentDateTime();
         local.status = 0;
-        local.kind = "text";
         m_chats->addServerMessage(row, local);
         const qint64 localId = local.id;
         m_api->post("/api/messages/send", body, this, [this, row, localId](const ApiResult &r) {

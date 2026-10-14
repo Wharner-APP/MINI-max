@@ -3,6 +3,7 @@
 #include <QString>
 
 #include "core/context.h"
+#include "core/crypto.h"
 
 class ChatsModel;
 
